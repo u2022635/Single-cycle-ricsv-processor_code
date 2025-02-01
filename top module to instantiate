@@ -1,0 +1,201 @@
+Main module:
+
+`timescale 1ns / 1ps
+
+
+module Top_Module (
+    input clk,         // Clock signal
+    input reset,
+    output [31:0] InstructionMemory_out, // output instruction
+    output [31:0] RegisterFile_out1, RegisterFile_out2, //gives values for data stored in rs1 and rs2
+	 output [4:0]rs1_out,rs2_out,rd_out,// gives values for the registors e.g x1,x2
+	 output [31:0] result,// gives alu result
+	 output [31:0]read_data,// reads data from the data memory
+	 output [31:0] imm_out,// gives 32 bits immediate
+	 output [31:0] pc,// gives program counter value
+	 output [2:0] alu_control,//control signals for value 
+	 output [31:0]imm_add_out_o,// imm alu result
+	 output[7:0] contol_out,// control signals concatenation for mux and alu 
+	 output [2:0] func3_o,// output to func3
+	 output [6:0] func7_o,// output to func7
+	 output [31:0] add4_out_o //pc+4 output
+	 
+	 
+	 // Reset signal
+);
+
+    // Wires to interconnect modules
+    wire [31:0] PC_in,PC_out, Instruction_Code;
+    wire [4:0] rs1, rs2, rd;
+    wire [2:0] func3;
+    wire [6:0] func7;
+    wire [31:0] read_data1, read_data2, ALU_result, write_data,alu_input2;
+    wire [2:0] ALU_Control;
+    wire zero_flag;
+	 wire mem_read;        
+    wire mem_write;        
+    wire[31:0] address;   
+    wire [31:0] data_in;  
+    wire [31:0] data_out;
+	 wire [31:0] instruction_imm;
+    wire [31:0] immediate_output;
+
+    wire branch,mem_to_reg,alu_src,reg_write; 
+    wire [1:0] ALU_op;
+   
+	
+	 wire [11:0] imm12_out;
+	 wire [31:0] imm_add_out;
+    
+	 wire and_out;
+	 wire[31:0] datamem_out;
+	 wire [31:0] add4_out;
+	 
+	 
+	 
+	 // assigning wires to output
+    assign pc = PC_out;
+	 assign  alu_control=ALU_Control;
+    assign InstructionMemory_out = Instruction_Code;
+    assign RegisterFile_out1 = read_data1;
+    assign RegisterFile_out2 = read_data2;
+	 assign rs1_out=rs1;
+	 assign rs2_out=rs2;
+	 assign rd_out=rd;
+	 assign result=ALU_result;
+	 assign read_data=datamem_out;
+	 assign imm_out=immediate_output;
+	  assign func3_o= func3;
+	 assign func7_o= func7;
+	 assign contol_out = {branch,mem_read,mem_to_reg,mem_write,alu_src,reg_write,ALU_op};
+	 assign add4_out_o=add4_out;
+	 assign imm_add_out_o=imm_add_out;
+   
+
+    //  instantiate Program Counter
+    Program_Counter PC(
+        .clk(clk),
+        .reset(reset),
+        .PC_in(PC_in),
+        .PC_out(PC_out)
+    );
+
+ //  Adder to increment PC
+    Adder pc4_adder(
+        .a(PC_out),
+        .b(32'd4),   // Increment PC by 4
+        .sum(add4_out)
+    );
+	  //  Adder to  immediate+pc (branch)
+	 Adder pc1_adder(
+        .a(PC_out),
+        .b(immediate_output),   
+        .sum(imm_add_out)
+    );
+	 
+	 // mux for branch instruction
+	  Mux mux_add4(
+       .a(add4_out),
+       .b(imm_add_out),
+       .s(and_out),
+       .y(PC_in)
+ );
+ 
+    // Instruction Memory
+    INST_MEM InstructionMemory(
+        .PC(PC_out),
+        .reset(reset),
+        .Instruction_Code(Instruction_Code)
+    );
+
+    // Decoder
+    Decoder decoder(
+        .instruction(Instruction_Code),
+        .func3(func3),
+        .func7(func7),
+        .rs1(rs1),
+        .rs2(rs2),
+        .rd(rd),
+        .imm(imm12_out)  
+    );
+
+    // Register File
+    Register_File RF(
+        .clk(clk),
+        .reg_write(reg_write),       
+        .write_data(write_data),
+        .rs1(rs1),
+        .rs2(rs2),
+        .rd(rd),
+        .out1(read_data1),
+        .out2(read_data2),
+        .reset(reset)
+    );
+
+    // ALU Control Unit
+    ALU_Control_Unit ALUControl(
+        .ALU_Op(ALU_op),         
+        .Funct7(func7[5]),
+        .Funct3(func3),
+        .Operation(ALU_Control)
+    );
+
+    // ALU
+    ALU alu(
+        .in1(read_data1),
+        .in2(alu_input2),
+        .result(ALU_result),
+        .alu_control(ALU_Control),
+        .zero_flag(zero_flag)
+    );
+ // and date for zero flag (branch)
+ And_Gate and1(
+.a(branch),
+ .b(zero_flag),
+ .y(and_out)
+ );
+
+	 
+	// data_mem for load and store
+	 data_mem DM (
+	 .mem_read(mem_read),
+	 .mem_write(mem_write),
+	 .address(ALU_result),
+	 .data_in(read_data2),
+	 .data_out(datamem_out)
+	 );
+
+    // imm conversion from 12 bit to 32 bits
+	 Imm_Gen IG(
+    .instruction(Instruction_Code),
+    .immediate_output(immediate_output)
+      );
+ // imm selection between rs2 and imm for load and store
+    Mux Imm_mux(
+       .a(read_data2),
+       .b(immediate_output),
+       .s(alu_src),
+       .y(alu_input2)
+ );
+    // choose b/w alu result and read data
+    Mux mem_mux(
+       .a(ALU_result),
+       .b(datamem_out),
+       .s(mem_to_reg),
+       .y(write_data)
+ );
+ 
+ 
+  // instantiate control unit
+ Control_Unit CU(
+.opcode(Instruction_Code[6:0]),        
+.branch(branch),
+.mem_read(mem_read),
+.mem_to_reg(mem_to_reg),
+.mem_write(mem_write),
+.alu_src(alu_src),
+.reg_write(reg_write),
+ .ALU_op(ALU_op)
+ );
+
+endmodule
