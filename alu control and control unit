@@ -1,0 +1,84 @@
+// ALU Control Unit
+
+module ALU_Control_Unit(
+input [1:0] ALU_Op,
+input Funct7,
+input [2:0] Funct3,
+output reg [2:0] Operation
+);
+
+always @ (*)
+	begin
+		casex({ALU_Op, Funct7, Funct3})
+		6'b1X0000: Operation = 3'b010;
+		6'b1X1000: Operation = 3'b110;
+		6'b1X0111: Operation = 3'b000;
+		6'b1X0110: Operation = 3'b001;
+		6'b00XXXX: Operation = 3'b010;
+		6'bX1XXXX: Operation = 3'b110;
+		default: Operation = 3'bXXX;
+		endcase
+	end
+endmodule
+
+
+// Control Unit
+
+module Control_Unit(
+input [6:0] opcode,         //opcode from instruction
+output reg branch,mem_read,mem_to_reg,mem_write,alu_src,reg_write, //control signals
+output reg [1:0] ALU_op);//control signal
+
+parameter r_type = 7'b0110011;//add,sub,and,or
+parameter l_type = 7'b0000011;//lw
+parameter s_type = 7'b0100011;//sw
+parameter b_type = 7'b1100011;//beq
+
+always @(*) begin
+    case(opcode)
+    r_type:
+    begin
+        alu_src = 0;
+        mem_to_reg = 0;
+        reg_write = 1;
+        mem_read = 0;
+        mem_write = 0;
+        branch = 0;
+		  ALU_op = 2'b10;
+	end
+
+    l_type:
+    begin
+        alu_src = 1;
+        mem_to_reg = 1;
+        reg_write = 1;
+        mem_read = 1;
+        mem_write = 0;
+        branch = 0;
+		  ALU_op = 2'b00;
+	end
+	
+    s_type:
+    begin
+        alu_src = 1;
+        mem_to_reg = 1'bx;
+        reg_write = 0;
+        mem_read = 0;
+        mem_write = 1;
+        branch = 0;
+		  ALU_op = 2'b00;
+	end
+
+    b_type:
+    begin
+        alu_src = 0;
+        mem_to_reg = 1'bx;
+        reg_write = 0;
+        mem_read = 0;
+        mem_write = 0;
+        branch = 1;
+		  ALU_op = 2'b01;
+	end
+    endcase
+end
+endmodule
