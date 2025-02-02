@@ -1,0 +1,73 @@
+// Instruction Memory
+
+module INST_MEM(
+    input [31:0] PC,
+    input reset,
+    output [31:0] Instruction_Code
+);
+    reg [7:0] Memory [31:0]; // Byte addressable memory with 32 locations
+
+    assign Instruction_Code = {Memory[PC+3],Memory[PC+2],Memory[PC+1],Memory[PC]};
+
+    always @(reset)
+    begin
+        if(reset == 1)
+        begin 
+		  							
+
+
+				// add x3 x2 x1
+            Memory[3] = 8'h00;
+				Memory[2] = 8'h11;
+				Memory[1] = 8'h01;
+				Memory[0] = 8'hb3;
+				
+				// add x6 x5 x4
+            // 32'h00428333;
+				Memory[7] = 8'h00;
+				Memory[6] = 8'h42;
+				Memory[5] = 8'h83;
+				Memory[4] = 8'h33;
+				
+				// 32'h40a58633	sub x12 x11 x10
+				Memory[11] = 8'h40;
+				Memory[10] = 8'ha5;
+				Memory[9] = 8'h86;
+				Memory[8] = 8'h33;
+				
+//				32'h0042f833	and x16 x5 x4	and x16 x5 x4
+				Memory[15] = 8'h00;
+				Memory[14] = 8'h42;
+				Memory[13] = 8'hf8;
+				Memory[12] = 8'h33;
+				
+//				32'h0042e8b3	or x17 x5 x4
+				Memory[19] = 8'h00;
+				Memory[18] = 8'h42;
+				Memory[17] = 8'he8;
+				Memory[16] = 8'hb3;
+				
+								
+//				32'h3e812503; // lw x10 1000(x2)
+				Memory[27] = 8'h3e;
+				Memory[26] = 8'h81;
+				Memory[25] = 8'h25;
+				Memory[24] = 8'h03;
+			
+//				32'h3e112423; // sw x1 1000(x2)
+				Memory[23] = 8'h3e;
+				Memory[22] = 8'h11;
+				Memory[21] = 8'h24;
+				Memory[20] = 8'h23;
+
+
+// 				32'hfea50ce3	beq x10 x10 -8
+				Memory[31] = 8'hfe;
+				Memory[30] = 8'ha5;
+				Memory[29] = 8'h0c;
+				Memory[28] = 8'he3;
+
+        end
+    end
+
+endmodule
