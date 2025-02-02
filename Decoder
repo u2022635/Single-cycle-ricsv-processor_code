@@ -1,0 +1,58 @@
+// Decoder 
+
+module Decoder (instruction,func3,func7,rs1,rs2,rd,imm);
+input [31:0] instruction;   //instruction from instruction memory
+output reg [2:0] func3;     
+output reg [6:0] func7;  
+output reg [4:0] rs1,rs2,rd; //read_reg1,read_reg2,write_reg
+output reg [11:0] imm;
+
+parameter r_type = 7'b0110011;//add,sub,and,or
+parameter s_type = 7'b0100011;//sw
+parameter l_type = 7'b0000011;//lw
+parameter b_type = 7'b1100011;//beq 
+wire [6:0] opcode = instruction;
+always @(*) begin
+    case(opcode)
+    r_type:
+    begin
+        rd = instruction[11:7];
+        func3 = instruction[14:12];
+        rs1 = instruction[19:15];
+        rs2 = instruction[24:20];
+        func7 = instruction[31:25];
+    end
+    s_type:
+    begin
+        imm[4:0] = instruction[11:7];
+        func3 = instruction[14:12];
+        rs1 = instruction[19:15];
+        rs2 = instruction[24:20];
+        imm[11:5] = instruction[31:25];
+        rd = 5'bx;
+        func7 = 7'bx;
+		  end
+    l_type:
+    begin
+        rd = instruction[11:7];
+        func3 = instruction[14:12];
+        rs1 = instruction[19:15];
+        imm[11:0] = instruction[31:20];
+        func7 = 7'bx;
+		  end
+    b_type:
+    begin
+        imm[11] = instruction[7];
+        imm[4:1] = instruction[11:8];
+        func3 = instruction[14:12];
+        rs1 = instruction[19:15];
+        rs2 = instruction[24:20];
+        imm[10:5] = instruction[30:25];
+        imm[12] = instruction[31];
+        rd = 5'bx;
+        func7 = 7'bx;
+    end
+    endcase
+end
+
+endmodule
