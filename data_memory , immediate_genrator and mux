@@ -1,0 +1,79 @@
+// Data Memory 
+
+module data_mem (mem_read,mem_write,address,data_in,data_out);
+input mem_read;         //control to read data
+input mem_write;        //control to write data
+input [31:0] address;   //address to read/write 
+input [31:0] data_in;   //input data for write
+output reg [31:0] data_out; //output data for read
+
+reg [7:0] memory [1023:0];
+
+always @(*) begin
+
+        if(mem_write)
+        begin
+            memory[address] = data_in[7:0];
+            memory[address+1] = data_in[15:8];
+            memory[address+2] = data_in[23:16];
+            memory[address+3] = data_in[31:24];
+        end
+
+        if(mem_read)
+        begin
+            data_out[7:0] = memory[address];
+            data_out[15:8] = memory[address+1]; 
+            data_out[23:16] = memory[address+2]; 
+            data_out[31:24] = memory[address+3];
+        end
+
+
+end
+
+endmodule
+
+
+// Imm Gen
+
+module Imm_Gen(
+    input [31:0] instruction,
+    output reg [31:0] immediate_output
+);
+
+parameter [6:0] LOAD_OPCODE = 7'b0000011;
+parameter [6:0] STORE_OPCODE = 7'b0100011; 
+parameter [6:0] BRANCH_OPCODE = 7'b1100011;
+
+wire [6:0] opcode = instruction[6:0];
+
+wire [11:0] load_im = instruction[31:20];
+wire [11:0] store_im = {instruction[31:25],instruction[11:7]};
+wire [12:1] branch_im = {instruction[31], instruction[7], instruction[30:25], instruction[11:8]};
+      
+always @(*) begin
+    case(opcode)
+        	LOAD_OPCODE: immediate_output = { {20{load_im[11]}} , load_im};
+			STORE_OPCODE: immediate_output = { {20{store_im[11]}} , store_im};
+			BRANCH_OPCODE: immediate_output = 2*{{20{branch_im[12]}} , branch_im}; // left shift 
+			default: immediate_output = 32'b0;
+    endcase
+end
+
+endmodule
+
+
+// Mux
+
+module Mux(
+input [31:0] a, b,
+input s,
+output reg [31:0] y);
+
+always @ (*)
+begin 
+if (s==0)
+	y = a;
+else 
+	y = b;
+end
+endmodule
