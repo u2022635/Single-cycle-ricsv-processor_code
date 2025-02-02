@@ -1,0 +1,106 @@
+// Adder 
+module Adder (
+    input [31:0] a,b,
+    output [31:0] sum
+);
+
+assign sum = a + b;
+
+endmodule
+
+
+// ALU
+
+module ALU (in1,in2,result,alu_control,zero_flag);
+input [31:0] in1,in2;
+input[2:0] alu_control;
+output reg [31:0] result;
+output reg zero_flag;
+
+always @(*) begin
+        case(alu_control)
+
+            3'b000: result = in1&in2; //AND
+            3'b001: result = in1|in2; //OR
+            3'b010: result = in1+in2; //Add
+            3'b110: result = in1-in2; //Sub
+            3'b011:                   //A==B
+            begin 
+                if(in1==in2)
+                    result = 32'b0;
+                else
+                    result = 32'bx;
+            end
+        endcase
+
+        // Setting Zero_flag if ALU_result is zero
+        if (result == 32'b0)
+            zero_flag = 1'b1;
+        else
+            zero_flag = 1'b0;
+end
+    
+endmodule 
+
+
+// Register File
+module Register_File (clk,reg_write,write_data,rs1,rs2,rd,out1,out2,reset);
+input clk,reset; 
+input reg_write;    
+input [31:0] write_data; 
+input [4:0] rs1,rs2,rd;  
+output [31:0] out1,out2;
+
+reg [31:0] Reg [31:0];
+
+initial begin
+	Reg[1]=5;
+	Reg[2]=6;
+	Reg[3]=7;
+	Reg[4]=2;	
+	Reg[5]=3;
+	Reg[6]=1;	
+	Reg[7]=0;
+	Reg[8]=9;
+	Reg[9]=23;
+	Reg[10]=11;
+
+	Reg[11]=5;
+	Reg[12]=6;
+	Reg[13]=7;
+	Reg[14]=2;	
+	Reg[15]=3;
+	Reg[16]=1;	
+	Reg[17]=0;
+	Reg[18]=32;
+	Reg[19]=15;
+	Reg[20]=11;
+	
+	Reg[21]=5;
+	Reg[22]=6;
+	Reg[23]=7;
+	Reg[24]=2;	
+	Reg[25]=3;
+	Reg[26]=1;	
+	Reg[27]=0;
+	Reg[28]=7;
+	Reg[29]=6;
+	Reg[30]=17;
+	Reg[31]=31;
+end
+
+always @(posedge clk) begin
+    //Reg[0] is hardcoded 0
+	Reg[0]=0;
+
+    //Logic
+    if(reg_write) 	//write to rd
+		Reg[rd] = write_data;
+end
+
+
+//read rs1,rs2
+assign out1 = Reg[rs1];
+assign out2 = Reg[rs2];
+
+endmodule
